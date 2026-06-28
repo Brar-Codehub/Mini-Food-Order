@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Mini Food Order Demo</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Mini Food Order Demo</h1>
+      <p class="lead">Signup, browse menus, place orders, and see top recommendations.</p>
+    </header>
+
+    <section class="card auth">
+      <h2>Signup / Login</h2>
+      <div class="row">
+        <input id="name" placeholder="Name" />
+        <input id="email" placeholder="Email" />
+        <input id="password" placeholder="Password" type="password" />
+      </div>
+      <div class="row">
+        <button onclick="signup()" class="btn">Signup</button>
+        <button onclick="login()" class="btn primary">Login</button>
+        <button onclick="useDemo()" class="btn ghost">Use Demo User</button>
+      </div>
+      <div id="status" class="status"></div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h3>Restaurants</h3>
+        <div id="restaurants" class="list"></div>
+      </div>
+
+      <div class="card">
+        <h3>Recommendations (Top 5)</h3>
+        <div id="recs" class="list"></div>
+      </div>
+    </section>
+
+    <footer>
+      <small>Seeded demo data. For submission, mention this is a popularity-based recommender baseline.</small>
+    </footer>
+  </div>
+
+<script>
+let TOKEN = null;
+function setStatus(t){ document.getElementById('status').innerText = t; }
+
+function useDemo(){
+  document.getElementById('email').value = 'demo@example.com';
+  document.getElementById('password').value = 'demo123';
+  login();
+}
+
+async function signup(){
+  const res = await fetch('/api/signup', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({name:document.getElementById('name').value || 'Student', email:document.getElementById('email').value, password:document.getElementById('password').value})
+  });
+  const j = await res.json(); setStatus(JSON.stringify(j));
+}
+
+async function login(){
+  const res = await fetch('/api/login', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email:document.getElementById('email').value, password:document.getElementById('password').value})
+  });
+  const j = await res.json();
+  if (j.token){ TOKEN = j.token; setStatus('Logged in as '+j.user.name); loadRestaurants(); loadRecs(); }
+  else setStatus(JSON.stringify(j));
+}
+
+async function loadRestaurants(){
+  const res = await fetch('/api/restaurants');
+  const rs = await res.json();
+  const el = document.getElementById('restaurants'); el.innerHTML = '';
+  rs.forEach(r=>{
+    const d = document.createElement('div');
+    d.className = 'restaurant';
+    d.innerHTML = `<div class="rhead"><b>${r.name}</b><span class="cuisine">${r.cuisine}</span></div>
+      <div class="rbody"><button onclick="loadMenu('${r.id}')" class="btn small">View Menu</button>
+      <div id="menu-${r.id}" class="menu"></div></div>`;
+    el.appendChild(d);
+  });
+}
+
+async function loadMenu(rid){
+  const res = await fetch(`/api/restaurants/${rid}/menu`);
+  const items = await res.json();
+  const el = document.getElementById('menu-'+rid); el.innerHTML = '';
+  items.forEach(it=>{
+    const div = document.createElement('div');
+    div.className = 'menu-item';
+    div.innerHTML = `<div class="mi-left"><div class="mi-name">${it.name}</div><div class="mi-desc">${it.description || ''}</div></div>
+      <div class="mi-right">₹${it.price.toFixed(0)} <button onclick="placeOrder('${rid}','${it.id}')" class="btn tiny">Order</button></div>`;
+    el.appendChild(div);
+  });
+}
+
+async function placeOrder(rid, itemId){
+  if (!TOKEN){ setStatus('Login first'); return; }
+  const res = await fetch('/api/orders', {
+    method:'POST', headers:{'Content-Type':'application/json','Authorization':TOKEN},
+    body: JSON.stringify({restaurant_id:rid, items:[{item_id:itemId, qty:1}]})
+  });
+  const j = await res.json(); setStatus(JSON.stringify(j));
+  loadRecs();
+}
+
+async function loadRecs(){
+  if (!TOKEN) return;
+  const res = await fetch('/api/recommendations/top', {headers:{'Authorization':TOKEN}});
+  const j = await res.json();
+  const el = document.getElementById('recs'); el.innerHTML = '';
+  if (!Array.isArray(j) || j.length===0){ el.innerText = 'No recommendations yet.'; return; }
+  j.forEach(r=>{
+    const d = document.createElement('div');
+    d.className = 'rec';
+    d.innerHTML = `<div class="rec-left"><div class="rec-name">${r.item.name}</div><div class="rec-desc">${r.item.description || ''}</div></div>
+      <div class="rec-right">₹${r.item.price.toFixed(0)} <div class="score">score ${r.score}</div></div>`;
+    el.appendChild(d);
+  });
+}
+</script>
+</body>
+</html>
