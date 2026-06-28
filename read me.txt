@@ -1,0 +1,46 @@
+Mini Food Order Demo — a minimal full‑stack app for a college submission.
+Implements user signup/login, restaurant and menu browsing, cart/checkout (mock), order creation and tracking, and a simple popularity‑based recommendation endpoint. Uses SQLite so it runs locally with minimal setup.
+
+Quick Start
+Requirements
+
+Python 3.8+ and pip.
+
+Files: app.py, requirements.txt, static/index.html in a project folder.
+
+Install and run
+
+bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python app.py
+Open http://127.0.0.1:5000 in your browser.
+
+Demo Credentials and Usage
+Seeded demo user
+
+Email: demo@example.com
+
+Password: demo123
+
+Basic flow
+
+Login with demo credentials or create a new user.
+
+Browse restaurants, view menus, and place an order.
+
+View order status via the order endpoint.
+
+Recommendations appear as Top‑5 popular items on the main page.
+
+API Endpoints
+Endpoint	Method	Purpose
+/api/signup	POST	Create user: JSON {name,email,password}
+/api/login	POST	Login: JSON {email,password} returns token
+/api/restaurants	GET	List restaurants
+/api/restaurants/<id>/menu	GET	Get menu for restaurant
+/api/orders	POST	Place order (Auth header token) JSON {restaurant_id, items:[{item_id,qty}]}
+/api/orders/<id>	GET	Get order details (Auth header token)
+/api/recommendations/top	GET	Top‑5 popular items (Auth header token)
+
